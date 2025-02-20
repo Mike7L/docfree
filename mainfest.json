@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "PDF Subframe Opener",
+    "version": "1.0",
+    "description": "On file:// folder pages, opens PDF files in a subframe overlay.",
+    "permissions": [
+        "contextMenus",
+        "scripting"
+      ],
+    "host_permissions": [
+      "file://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+      },
+    "content_scripts": [
+      {
+        "matches": ["https://chatgpt.com/*"],
+        "js": ["content.js"],
+        "run_at": "document_idle"
+      }
+    ],
+    "action": {
+    "default_title": "Toggle ChatGPT Sidebar"
+    }
+  }

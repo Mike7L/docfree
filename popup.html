@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PDF Subframe Opener</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 10px;
+    }
+    h1 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    #container {
+      display: flex;
+      gap: 10px;
+    }
+    #fileList {
+      width: 40%;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 5px;
+      list-style: none;
+    }
+    #fileList li {
+      cursor: pointer;
+      padding: 3px;
+      border-bottom: 1px solid #eee;
+    }
+    #fileList li:hover {
+      background-color: #f0f0f0;
+    }
+    #pdfFrame {
+      width: 60%;
+      height: 400px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h1>PDF Subframe Opener</h1>
+  <input type="file" id="folderInput" webkitdirectory multiple>
+  <div id="container">
+    <ul id="fileList"></ul>
+    <iframe id="pdfFrame"></iframe>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
