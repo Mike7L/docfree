@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "PDF Subframe Opener",
+    "name": "ChatGPT PDF Viewer",
     "version": "1.0",
-    "description": "On file:// folder pages, opens PDF files in a subframe overlay.",
+    "description": "Opens PDF files in ChatGPT.",
     "permissions": [
         "contextMenus",
         "scripting"
