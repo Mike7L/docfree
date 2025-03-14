@@ -353,4 +353,106 @@
       toggleSidebar();
     }
   });
+
+  // Function to add the export button if not already present
+  function addExportButtonIfNotExists() {
+    const controlContainer = document.querySelector('div.flex.gap-x-1\\.5');
+    if (controlContainer) {
+        // Prevent duplicating the export button by checking for our unique container ID
+        if (controlContainer.querySelector('#export-chat-btn-container')) {
+            return;
+        }
+      
+        // Create a container span for the export button with a unique ID
+        const exportButtonSpan = document.createElement('span');
+        exportButtonSpan.id = "export-chat-btn-container";
+        exportButtonSpan.setAttribute('data-state', 'closed');
+    
+        // Create the export button element
+        const exportButton = document.createElement('button');
+        exportButton.className = "export-chat-btn btn relative btn-primary btn-small flex h-9 w-9 items-center justify-center rounded-full border border-token-border-light p-1 text-token-text-secondary focus-visible:outline-black dark:text-token-text-secondary dark:focus-visible:outline-white bg-transparent dark:bg-transparent can-hover:hover:bg-token-main-surface-secondary dark:can-hover:hover:bg-gray-700";
+        exportButton.setAttribute('aria-label', 'Export chat');
+    
+        // Use an SVG icon for the export functionality
+        exportButton.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L12 16M12 16L8 12M12 16L16 12M4 20H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+      
+        exportButton.addEventListener('click', () => {
+            let exportedText = '';
+            // Получаем все сообщения в диалоге
+            const articles = document.querySelectorAll('article[data-testid^="conversation-turn-"]');
+            
+            articles.forEach(article => {
+                // Парсинг номера сообщения
+                const turnId = article.getAttribute('data-testid');
+                const turnNumber = turnId ? turnId.replace('conversation-turn-', '') : '';
+                
+                // Определение автора сообщения по скрытому заголовку
+                let authorPrefix = '';
+                const userHeading = article.querySelector('h5.sr-only');
+                const gptHeading = article.querySelector('h6.sr-only');
+                if (userHeading && userHeading.textContent.toLowerCase().includes('you said')) {
+                    authorPrefix = `${turnNumber}. USER: `;
+                } else if (gptHeading && gptHeading.textContent.toLowerCase().includes('chatgpt said')) {
+                    authorPrefix = `${turnNumber}. GPT: `;
+                } else {
+                    authorPrefix = `${turnNumber}. GPT: `;
+                }
+                
+                // Извлечение текста сообщения
+                let messageText = '';
+                const userMessageElem = article.querySelector('.whitespace-pre-wrap');
+                if (userMessageElem) {
+                    messageText = userMessageElem.textContent.trim();
+                } else {
+                    // Для GPT-сообщений может быть несколько элементов с классом .markdown.prose
+                    const gptMessageElems = article.querySelectorAll('.markdown.prose');
+                    if (gptMessageElems.length) {
+                        messageText = Array.from(gptMessageElems)
+                                           .map(el => el.textContent.trim())
+                                           .join("\n\n");
+                    } else {
+                        // Если ничего не найдено, берем всё видимое содержимое
+                        messageText = article.innerText.trim();
+                    }
+                }
+                
+                if (messageText) {
+                    exportedText += authorPrefix + messageText + "\n\n";
+                }
+            });
+            
+            // Копируем результат в буфер обмена
+            navigator.clipboard.writeText(exportedText).then(function() {
+                const hint = document.createElement('div');
+                hint.textContent = "Chat copied to clipboard!";
+                Object.assign(hint.style, {
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: '#fff',
+                    padding: '10px',
+                    borderRadius: '5px',
+                    zIndex: '100000'
+                });
+                document.body.appendChild(hint);
+                setTimeout(() => { hint.remove(); }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        });
+      
+        exportButtonSpan.appendChild(exportButton);
+        controlContainer.appendChild(exportButtonSpan);
+    }
+}
+  
+// Set up a MutationObserver to detect when the conversation container is added/changed.
+const conversationObserver = new MutationObserver((mutations) => {
+    // Check if our chat control container is present
+    addExportButtonIfNotExists();
+});
+conversationObserver.observe(document.body, { childList: true, subtree: true });
 })();
