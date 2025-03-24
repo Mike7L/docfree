@@ -26,23 +26,54 @@
     document.getElementById('countDone').textContent = countDone;
   }
   
-  // Рендеринг списка файлов с учетом выбранных фильтров
+  // Рендеринг списка файлов с учетом выбранных фильтров и поискового запроса
   function renderFileList() {
     const fileListElement = document.getElementById('fileList');
     fileListElement.innerHTML = '';
     fileListMap = {};
+
+    // Get sorting option
+    const sortOption = document.getElementById('sortFiles').value;
   
     // Состояния чекбоксов фильтров
     const showToDo = document.getElementById('filterToDo').checked;
     const showProgress = document.getElementById('filterProgress').checked;
     const showDone = document.getElementById('filterDone').checked;
+    
+    // Get search query
+    const searchQuery = document.getElementById('fileSearchInput')?.value.toLowerCase() || '';
+
+    // Apply sorting
+    let sortedFiles = [...allFiles];
+    switch(sortOption) {
+      case 'dateDesc':
+        sortedFiles.sort((a, b) => b.lastModified - a.lastModified);
+        break;
+      case 'dateAsc':
+        sortedFiles.sort((a, b) => a.lastModified - b.lastModified);
+        break;
+      case 'nameAsc':
+      default:
+        sortedFiles.sort((a, b) => {
+          const aPath = a.webkitRelativePath || a.name;
+          const bPath = b.webkitRelativePath || b.name;
+          return aPath.localeCompare(bPath);
+        });
+        break;
+    }
   
-    allFiles.forEach((file, index) => {
+    sortedFiles.forEach((file, index) => {
       let status = localStorage.getItem("fileStatus_" + file.name) || "ToDo";
       let showFile = false;
       if (status === "ToDo" && showToDo) showFile = true;
       if (status === "Progress" && showProgress) showFile = true;
       if (status === "Done" && showDone) showFile = true;
+      
+      // Apply search filter
+      if (searchQuery && !file.name.toLowerCase().includes(searchQuery)) {
+        showFile = false;
+      }
+      
       if (showFile) {
         const li = document.createElement('li');
         li.textContent = (index + 1) + '. ' + file.name;
@@ -107,25 +138,38 @@
       fontFamily: 'sans-serif'
     });
   
-    // Разметка сайдбара:
-    // – Заголовок, панель фильтров (чекбоксы с количеством файлов), выбор папки
-    // – Контейнер с двумя колонками: слева список файлов, справа PDF Viewer и панель управления
+    // Разметка сайдбара с добавленным полем поиска над списком файлов
     sidebar.innerHTML = `
       <h2 style="margin-top:0; font-size:16px;">Folder & PDF Viewer</h2>
-      <div id="statusFilters" style="margin-bottom:10px; font-size:14px;">
-        <label style="margin-right: 10px;">
-          <input type="checkbox" id="filterToDo" checked> ToDo (<span id="countToDo">0</span>)
-        </label>
-        <label style="margin-right: 10px;">
-          <input type="checkbox" id="filterProgress" checked> Progress (<span id="countProgress">0</span>)
-        </label>
-        <label style="margin-right: 10px;">
-          <input type="checkbox" id="filterDone" checked> Done (<span id="countDone">0</span>)
-        </label>
+      <div style="display: flex; justify-content: space-between; margin-bottom:10px; font-size:14px;">
+        <div id="statusFilters">
+          <label style="margin-right: 10px;">
+            <input type="checkbox" id="filterToDo" checked> ToDo (<span id="countToDo">0</span>)
+          </label>
+          <label style="margin-right: 10px;">
+            <input type="checkbox" id="filterProgress" checked> Progress (<span id="countProgress">0</span>)
+          </label>
+          <label style="margin-right: 10px;">
+            <input type="checkbox" id="filterDone" checked> Done (<span id="countDone">0</span>)
+          </label>
+        </div>
+        <div>
+          <label for="sortFiles">Sort: </label>
+          <select id="sortFiles" style="padding: 2px; border-radius: 3px;">
+            <option value="nameAsc">Name</option>
+            <option value="dateDesc">Date DESC</option>
+            <option value="dateAsc">Date ASC</option>
+          </select>
+        </div>
       </div>
       <input type="file" id="folderInput" webkitdirectory multiple style="margin-bottom:10px; width:100%;">
       <div id="sidebarContainer" style="display: flex; height: calc(100% - 160px); border: 1px solid #ccc;">
-        <ul id="fileList" style="flex: 0 0 40%; list-style: none; padding: 5px; margin: 0; overflow-y: auto; border-right: 1px solid #ccc;"></ul>
+        <div style="flex: 0 0 40%; display: flex; flex-direction: column; border-right: 1px solid #ccc;">
+          <div style="padding: 5px;">
+            <input type="text" id="fileSearchInput" placeholder="Search files..." style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 5px;">
+          </div>
+          <ul id="fileList" style="list-style: none; padding: 5px; margin: 0; overflow-y: auto; flex: 1;"></ul>
+        </div>
         <div id="pdfContainer" style="flex: 1; display: flex; flex-direction: column; position: relative;">
           <iframe id="pdfFrame" style="flex: 1; border: none;"></iframe>
           <div id="controlsContainer" style="display: flex; flex-direction: row; gap: 10px; margin-top: 10px;">
@@ -218,6 +262,12 @@
       currentFileName = null;
       selectedFileLi = null;
       updateStatusCounts();
+      renderFileList();
+    });
+  
+    // Add event listener for search input
+    const fileSearchInput = document.getElementById('fileSearchInput');
+    fileSearchInput.addEventListener('input', () => {
       renderFileList();
     });
   
@@ -326,6 +376,9 @@
   
       document.getElementById('pdfContainer').appendChild(commentOverlay);
     });
+
+    // Add event listener for the sorting dropdown
+    document.getElementById('sortFiles').addEventListener('change', renderFileList);
   }
   
   // Функция переключения видимости сайдбара (и разделителя)
@@ -452,7 +505,8 @@
 // Set up a MutationObserver to detect when the conversation container is added/changed.
 const conversationObserver = new MutationObserver((mutations) => {
     // Check if our chat control container is present
-    addExportButtonIfNotExists();
+    //Whap addExportButtonIfNotExists(); into timer to make sure the button is added after the chat is loaded
+    setTimeout(addExportButtonIfNotExists, 500);
 });
 conversationObserver.observe(document.body, { childList: true, subtree: true });
 })();
